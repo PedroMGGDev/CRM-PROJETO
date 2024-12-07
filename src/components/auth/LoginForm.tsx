@@ -26,6 +26,7 @@ export default function LoginForm() {
   const [error, setError] = React.useState('');
   const navigate = useNavigate();
   const setCurrentUser = useStore((state) => state.setCurrentUser);
+  const setUserRole = useStore((state) => state.setUserRole);
 
   const {
     register: registerLogin,
@@ -54,7 +55,12 @@ export default function LoginForm() {
         setNeedsMfa(true);
       } else {
         setCurrentUser(response.user);
-        navigate('/');
+        setUserRole(response.user.role); // Define o papel do usuário
+        if (response.user.role === 'admin') {
+          navigate('/admin-dashboard'); // Redireciona para o painel do admin
+        } else {
+          navigate('/user-dashboard'); // Redireciona para o painel do usuário
+        }
       }
     } catch (error) {
       setError('Erro ao fazer login. Verifique suas credenciais.');
@@ -70,7 +76,12 @@ export default function LoginForm() {
       setError('');
       const response = await verifyMfaCode(email, data.code);
       setCurrentUser(response.user);
-      navigate('/');
+      setUserRole(response.user.role); // Define o papel do usuário após a MFA
+      if (response.user.role === 'admin') {
+        navigate('/admin-dashboard'); // Redireciona para o painel do admin
+      } else {
+        navigate('/user-dashboard'); // Redireciona para o painel do usuário
+      }
     } catch (error) {
       setError('Código inválido. Tente novamente.');
       console.error('Erro na verificação MFA:', error);
