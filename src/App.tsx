@@ -13,15 +13,10 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   const currentUser = useStore((state) => state.currentUser);
 
   // Verificar se o usuário está logado
-  return currentUser ? <>{children}</> : <Navigate to="/dashboard" />;
+  return currentUser ? <>{children}</> : <Navigate to="/login" />;
 }
 
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  const currentUser = useStore((state) => state.currentUser);
 
-  // Verificar se o usuário é um admin
-  return currentUser && currentUser.role === 'admin' ? <>{children}</> : <Navigate to="/" />;
-}
 
 function App() {
   const currentUser = useStore((state) => state.currentUser);
