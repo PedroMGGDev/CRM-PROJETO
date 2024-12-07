@@ -25,10 +25,12 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const currentUser = useStore((state) => state.currentUser);
+
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<LoginForm />} />
+        <Route path="/login" element={currentUser ? <Navigate to="/" /> : <LoginForm />} />
         <Route
           path="/"
           element={
