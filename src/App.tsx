@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from './store/useStore';
 import Layout from './components/Layout';
-import LoginForm from './components/auth/LoginForm';
 import Dashboard from './pages/Dashboard';
 import Contacts from './pages/Contacts';
 import Companies from './pages/Companies';
@@ -14,7 +13,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   const currentUser = useStore((state) => state.currentUser);
 
   // Verificar se o usuário está logado
-  return currentUser ? <>{children}</> : <Navigate to="/login" />;
+  return currentUser ? <>{children}</> : <Navigate to="/dashboard" />;
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -30,7 +29,6 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={currentUser ? <Navigate to="/" /> : <LoginForm />} />
         <Route
           path="/"
           element={
@@ -46,6 +44,8 @@ function App() {
           <Route path="messages" element={<Messages />} />
           <Route path="settings" element={<AdminRoute><Settings /></AdminRoute>} />
         </Route>
+        {/* Caso o usuário não esteja logado, ele será redirecionado para o Dashboard */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );
