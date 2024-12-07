@@ -5,13 +5,15 @@ import { z } from 'zod';
 import { Mail, Lock, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { login, verifyMfaCode } from '../../modules/auth/services/authService';
+import axios from 'axios';
 
+// Schema de validação do login
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
 });
 
+// Schema de validação do código MFA
 const mfaSchema = z.object({
   code: z.string().length(6, 'Código deve ter 6 dígitos'),
 });
@@ -22,12 +24,11 @@ type MfaFormData = z.infer<typeof mfaSchema>;
 export default function LoginForm() {
   const [needsMfa, setNeedsMfa] = React.useState(false);
   const [email, setEmail] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState('');
+  const [errorMessage, setErrorMessage] = React.useState('');  // Estado para capturar o erro
   const navigate = useNavigate();
   const setCurrentUser = useStore((state) => state.setCurrentUser);
-  const setUserRole = useStore((state) => state.setUserRole);
 
+  // Hook para o formulário de login
   const {
     register: registerLogin,
     handleSubmit: handleLoginSubmit,
@@ -36,6 +37,7 @@ export default function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
+  // Hook para o formulário MFA
   const {
     register: registerMfa,
     handleSubmit: handleMfaSubmit,
@@ -44,52 +46,46 @@ export default function LoginForm() {
     resolver: zodResolver(mfaSchema),
   });
 
+  // Função para o envio do login
   const onLoginSubmit = async (data: LoginFormData) => {
     try {
-      setLoading(true);
-      setError('');
-      const response = await login(data.email, data.password);
-      
-      if (response.requiresMfa) {
+      // Envia os dados de login para o backend
+      const response = await axios.post('/api/auth/login', {
+        email: data.email,
+        password: data.password,
+      });
+
+      // Se a resposta for bem-sucedida, ativa a necessidade de MFA
+      if (response.status === 200) {
         setEmail(data.email);
-        setNeedsMfa(true);
-      } else {
-        setCurrentUser(response.user);
-        setUserRole(response.user.role); // Define o papel do usuário
-        if (response.user.role === 'admin') {
-          navigate('/admin-dashboard'); // Redireciona para o painel do admin
-        } else {
-          navigate('/user-dashboard'); // Redireciona para o painel do usuário
-        }
+        setNeedsMfa(true);  // Ativa a tela de MFA
+        alert('Código de verificação enviado para o seu e-mail!');
       }
     } catch (error) {
-      setError('Erro ao fazer login. Verifique suas credenciais.');
-      console.error('Erro ao fazer login:', error);
-    } finally {
-      setLoading(false);
+      // Exibe a mensagem de erro diretamente na interface
+      setErrorMessage(error.response?.data?.error || 'Erro ao fazer login. Verifique suas credenciais.');
     }
   };
 
+  // Função para a verificação do código MFA
   const onMfaSubmit = async (data: MfaFormData) => {
     try {
-      setLoading(true);
-      setError('');
-      const response = await verifyMfaCode(email, data.code);
-      setCurrentUser(response.user);
-      setUserRole(response.user.role); // Define o papel do usuário após a MFA
-      if (response.user.role === 'admin') {
-        navigate('/admin-dashboard'); // Redireciona para o painel do admin
-      } else {
-        navigate('/user-dashboard'); // Redireciona para o painel do usuário
+      const response = await axios.post('/api/auth/verify-mfa', {
+        email: email,
+        code: data.code,
+      });
+
+      // Se a verificação for bem-sucedida, define o usuário como autenticado
+      if (response.status === 200) {
+        setCurrentUser(response.data.user);
+        navigate('/');
       }
     } catch (error) {
-      setError('Código inválido. Tente novamente.');
-      console.error('Erro na verificação MFA:', error);
-    } finally {
-      setLoading(false);
+      setErrorMessage('Erro na verificação MFA. Verifique o código e tente novamente.');
     }
   };
 
+  // Se precisar de MFA, exibe o formulário de verificação
   if (needsMfa) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -99,14 +95,9 @@ export default function LoginForm() {
               Verificação em duas etapas
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
-              Digite o código enviado para seu email
+              Digite o código enviado para seu e-mail
             </p>
           </div>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
-            </div>
-          )}
           <form className="mt-8 space-y-6" onSubmit={handleMfaSubmit(onMfaSubmit)}>
             <div className="rounded-md shadow-sm -space-y-px">
               <div>
@@ -131,10 +122,9 @@ export default function LoginForm() {
             <div>
               <button
                 type="submit"
-                disabled={loading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                {loading ? 'Verificando...' : 'Verificar'}
+                Verificar
               </button>
             </div>
           </form>
@@ -143,18 +133,17 @@ export default function LoginForm() {
     );
   }
 
+  // Exibe o formulário de login
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Entre na sua conta
+            Entre na sua co
           </h2>
         </div>
-        {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="text-sm text-red-700">{error}</div>
-          </div>
+        {errorMessage && (
+          <p className="text-center text-sm text-red-600">{errorMessage}</p>  {/* Exibe o erro */}
         )}
         <form className="mt-8 space-y-6" onSubmit={handleLoginSubmit(onLoginSubmit)}>
           <div className="rounded-md shadow-sm -space-y-px">
@@ -197,7 +186,7 @@ export default function LoginForm() {
           <div className="flex items-center justify-between">
             <div className="text-sm">
               <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Esqueceu sua senha?
+                Esquece sua senha?
               </a>
             </div>
           </div>
@@ -205,10 +194,9 @@ export default function LoginForm() {
           <div>
             <button
               type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              Entrar
             </button>
           </div>
         </form>
