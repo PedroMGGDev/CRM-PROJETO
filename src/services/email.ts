@@ -1,19 +1,19 @@
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-  host: import.meta.env.VITE_SMTP_HOST,
-  port: parseInt(import.meta.env.VITE_SMTP_PORT),
+  host: process.env.VITE_SMTP_HOST,
+  port: parseInt(process.env.VITE_SMTP_PORT || '587'),  // 587 é o valor padrão
   secure: true,
   auth: {
-    user: import.meta.env.VITE_SMTP_USER,
-    pass: import.meta.env.VITE_SMTP_PASS,
+    user: process.env.VITE_SMTP_USER,
+    pass: process.env.VITE_SMTP_PASS,
   },
 });
 
 export const sendVerificationCode = async (email: string, code: string) => {
   try {
     await transporter.sendMail({
-      from: `"CRM System" <${import.meta.env.VITE_SMTP_FROM}>`,
+      from: `"CRM System" <${process.env.VITE_SMTP_FROM}>`,
       to: email,
       subject: 'Código de Verificação',
       html: `
@@ -37,10 +37,10 @@ export const sendVerificationCode = async (email: string, code: string) => {
 
 export const sendPasswordRecovery = async (email: string, resetToken: string) => {
   try {
-    const resetLink = `${import.meta.env.VITE_APP_URL}/reset-password?token=${resetToken}`;
+    const resetLink = `${process.env.VITE_APP_URL}/reset-password?token=${resetToken}`;
     
     await transporter.sendMail({
-      from: `"CRM System" <${import.meta.env.VITE_SMTP_FROM}>`,
+      from: `"CRM System" <${process.env.VITE_SMTP_FROM}>`,
       to: email,
       subject: 'Recuperação de Senha',
       html: `
