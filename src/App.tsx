@@ -12,7 +12,16 @@ import Settings from './pages/Settings';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const currentUser = useStore((state) => state.currentUser);
+
+  // Verificar se o usuário está logado e se tem a função de admin
   return currentUser ? <>{children}</> : <Navigate to="/login" />;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const currentUser = useStore((state) => state.currentUser);
+
+  // Verificar se o usuário é um admin
+  return currentUser && currentUser.role === 'admin' ? <>{children}</> : <Navigate to="/" />;
 }
 
 function App() {
@@ -33,7 +42,7 @@ function App() {
           <Route path="companies" element={<Companies />} />
           <Route path="kanban" element={<Kanban />} />
           <Route path="messages" element={<Messages />} />
-          <Route path="settings" element={<Settings />} />
+          <Route path="settings" element={<AdminRoute><Settings /></AdminRoute>} />
         </Route>
       </Routes>
     </Router>
