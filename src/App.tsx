@@ -13,7 +13,7 @@ import Settings from './pages/Settings';
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const currentUser = useStore((state) => state.currentUser);
 
-  // Verificar se o usuário está logado e se tem a função de admin
+  // Verificar se o usuário está logado
   return currentUser ? <>{children}</> : <Navigate to="/login" />;
 }
 
